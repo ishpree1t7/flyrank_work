@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prioritizing Content Refresh — FlyRank Capstone</title>
+  <meta name="description" content="A decision-support ranking model that helps content teams prioritize which pages to review first, built on real anonymized search performance data.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #0d9488;
+      --accent-soft: #ccfbf1;
+      --border: #e2e8f0;
+      --good: #059669;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: #f8fafc;
+      line-height: 1.65;
+      font-size: 16.5px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
+      color: #f1f5f9;
+      padding: 56px 24px 48px;
+    }
+    .hero-inner { max-width: 820px; margin: 0 auto; }
+    .kicker {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
+      color: #5eead4; text-transform: uppercase; margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 40px);
+      font-weight: 800; line-height: 1.15;
+      letter-spacing: -0.02em; margin-bottom: 16px;
+    }
+    .hero-lead {
+      font-size: 18.5px; color: #cbd5e1; max-width: 640px;
+      margin-bottom: 28px; line-height: 1.55;
+    }
+    .metric-row {
+      display: flex; flex-wrap: wrap; gap: 20px 32px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(94,234,212,0.25);
+      border-radius: 14px; padding: 20px 24px;
+    }
+    .metric { min-width: 120px; }
+    .metric-num {
+      font-size: 32px; font-weight: 800; letter-spacing: -0.03em;
+      color: #5eead4; line-height: 1.1;
+    }
+    .metric-label { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+    .metric-vs { font-size: 14px; color: #64748b; margin-top: 2px; }
+
+    /* Layout */
+    .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 48px 0 8px; }
+    h2 {
+      font-size: 22px; font-weight: 700; margin-bottom: 16px;
+      letter-spacing: -0.01em; color: #0f172a;
+    }
+    h3 { font-size: 17px; font-weight: 600; margin: 24px 0 10px; }
+    p { margin-bottom: 14px; color: #334155; }
+    ul, ol { margin: 0 0 16px 22px; color: #334155; }
+    li { margin-bottom: 6px; }
+
+    /* Cards & tables */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 22px 24px; margin: 20px 0;
+    }
+    table {
+      width: 100%; border-collapse: collapse; font-size: 14.5px;
+      margin: 16px 0 8px;
+    }
+    th {
+      text-align: left; padding: 10px 12px;
+      border-bottom: 2px solid #0f172a; font-weight: 600;
+    }
+    td {
+      padding: 9px 12px; border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    .num { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .good { color: var(--good); }
+
+    /* Charts */
+    figure {
+      margin: 24px 0; background: #fff;
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; overflow: hidden;
+    }
+    figure img, figure object { width: 100%; height: auto; display: block; }
+    figcaption {
+      font-size: 13.5px; color: var(--muted);
+      margin-top: 12px; line-height: 1.5;
+    }
+
+    /* Abstract box */
+    .abstract {
+      background: #f0fdfa; border-left: 4px solid var(--accent);
+      padding: 20px 22px; border-radius: 0 10px 10px 0;
+      margin: 8px 0 24px; font-size: 15.5px;
+    }
+    .abstract p { margin-bottom: 0; color: #134e4a; }
+
+    /* Tags */
+    .tag {
+      display: inline-block; font-size: 12px; font-weight: 600;
+      padding: 3px 10px; border-radius: 999px;
+      background: var(--accent-soft); color: #0f766e;
+      margin-right: 6px; margin-bottom: 6px;
+    }
+
+    /* Footer / ack */
+    .ack {
+      margin-top: 40px; padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 14.5px; color: var(--muted);
+    }
+    footer {
+      text-align: center; padding: 32px 24px 48px;
+      font-size: 13.5px; color: #94a3b8;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .hero { padding: 40px 18px 36px; }
+      .metric-row { gap: 16px; }
+      .metric-num { font-size: 26px; }
+      section { padding: 36px 0 4px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== HERO ========== -->
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="kicker">FlyRank ML Internship · Capstone</div>
+      <h1>Prioritizing Content for Refresh Review</h1>
+      <p class="hero-lead">
+        A transparent ranking model that helps content teams decide which pages deserve attention first — built on real anonymized search performance data.
+      </p>
+      <div class="metric-row">
+        <div class="metric">
+          <div class="metric-num">0.74</div>
+          <div class="metric-label">Model Precision@50</div>
+          <div class="metric-vs">vs 0.24 baseline</div>
+        </div>
+        <div class="metric">
+          <div class="metric-num">≈3×</div>
+          <div class="metric-label">Lift over rules</div>
+          <div class="metric-vs">same holdout split</div>
+        </div>
+        <div class="metric">
+          <div class="metric-num">30k</div>
+          <div class="metric-label">Pages scored</div>
+          <div class="metric-vs">54% declining base rate</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ========== ABSTRACT ========== -->
+    <section>
+      <h2>Abstract</h2>
+      <div class="abstract">
+        <p>
+          This project asks which content pages should be prioritized for editorial review based on observable search and engagement signals.
+          Using a 30,000-row anonymized starter dataset of real production search performance, a Random Forest model was trained to rank pages by likelihood of decline.
+          On a client-holdout validation split the model achieved Precision@50 of 0.74, compared with 0.24 for a transparent rule-based baseline — roughly a 3× improvement.
+          The output is a ranked review queue with reason codes intended as decision support for content teams, not an automated publishing system.
+          All claims remain observational and directional; the work does not claim to predict ranking-algorithm changes or guarantee traffic recovery.
+        </p>
+      </div>
+    </section>
+
+    <!-- ========== INTRODUCTION ========== -->
+    <section>
+      <h2>1. Introduction / Problem</h2>
+      <p>
+        Content teams face a constant prioritization problem: given thousands of live pages, which ones should be reviewed first for possible refresh, expansion, or rewrite?
+        Looking only at raw traffic or a single metric often misses pages that still have demand but are losing visibility or engagement.
+      </p>
+      <p>
+        This work supports a concrete decision: <strong>which pages enter the next editorial review queue</strong>.
+        A content manager receives a ranked list, inspects the top items, and decides the appropriate action (refresh, monitor, expand, or leave alone).
+        The cost of a false positive is wasted editorial time; the cost of a false negative is missed opportunity on a declining page that still attracts impressions.
+      </p>
+      <p>
+        Machine learning is useful here because many weak but complementary signals (impressions, position, CTR, engagement, freshness, content length) can be combined into a single prioritization score that is still transparent enough for human review.
+      </p>
+      <p>
+        <span class="tag">Lane</span> Refresh / Content Opportunity Scoring
+      </p>
+    </section>
+
+    <!-- ========== DATA ========== -->
+    <section>
+      <h2>2. Data</h2>
+      <p>
+        The analysis uses the anonymized starter dataset that ships with the FlyRank ML Internship repository:
+      </p>
+      <ul>
+        <li><strong>Source</strong>: <code>data/raw/content_refresh_anonymized.csv</code></li>
+        <li><strong>Size</strong>: 30,000 rows × 44 columns (one row per pseudonymized content item)</li>
+        <li><strong>Clients</strong>: 32 pseudonymized clients</li>
+        <li><strong>Window</strong>: trailing 90-day metrics</li>
+        <li><strong>Declining-label rate</strong>: 54.2 %</li>
+      </ul>
+      <p>
+        Columns that could identify clients, domains, URLs, titles, or raw queries were never used as features and do not appear in any public output.
+        Rate columns (CTR, engagement rate, etc.) are stored as percentages ×100 (e.g. 0.76 means 0.76 %).
+        The label-derived fields <code>trend_direction</code> and <code>trend_pct</code> were used only to define the target and were excluded from the feature set to prevent leakage.
+      </p>
+    </section>
+
+    <!-- ========== METHODOLOGY ========== -->
+    <section>
+      <h2>3. Methodology</h2>
+
+      <h3>Label definition</h3>
+      <p>
+        <code>is_declining_label = 1</code> when <code>trend_direction == "down"</code>, otherwise 0.
+        This is an evaluation-only target derived from observed performance trend; it is never used as a model feature.
+      </p>
+
+      <h3>Features</h3>
+      <p>
+        The model used only observable signals available before any future outcome:
+        log-transformed impressions and clicks, average position, content age, character and word counts, CTR, scroll rate, days with impressions/sessions, and related engineered columns.
+        Top contributing features (by importance) included days with impressions, log impressions (90d), average position, and content age.
+      </p>
+
+      <h3>Baseline</h3>
+      <p>
+        A transparent hand-written rule score was built first. It combines simple thresholds on trend, demand, CTR, and engagement to produce a ranked list and reason codes.
+        This baseline is intentionally readable so any lift from the learned model can be trusted.
+      </p>
+
+      <h3>Validation design</h3>
+      <p>
+        Client-holdout split: entire clients are held out of training so the model is evaluated on unseen clients.
+        All metrics reported below use the same holdout.
+      </p>
+
+      <h3>Leakage checks</h3>
+      <p>
+        <code>trend_direction</code> and <code>trend_pct</code> were confirmed absent from the feature matrix.
+        Pseudonymous client and content IDs were used only for grouping, never as predictive features.
+        No future information relative to the 90-day window entered the feature set.
+      </p>
+    </section>
+
+    <!-- ========== RESULTS ========== -->
+    <section>
+      <h2>4. Results</h2>
+      <p>
+        On the client-holdout split the Random Forest model substantially outperformed the rule baseline on the primary ranking metric (Precision@50).
+        Base rate of the positive class is 54.2 %, so a naïve always-positive classifier would already score around that level; the model’s lift is therefore meaningful.
+      </p>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>ROC AUC</th>
+              <th>Avg Precision</th>
+              <th>Precision@50</th>
+              <th>Recall</th>
+              <th>F1</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Decision Tree</td>
+              <td class="num">0.742</td>
+              <td class="num">0.575</td>
+              <td class="num">0.540</td>
+              <td class="num">0.716</td>
+              <td class="num">0.634</td>
+            </tr>
+            <tr>
+              <td>Logistic Regression</td>
+              <td class="num">0.700</td>
+              <td class="num">0.522</td>
+              <td class="num">0.400</td>
+              <td class="num">0.567</td>
+              <td class="num">0.566</td>
+            </tr>
+            <tr>
+              <td><strong>Random Forest</strong></td>
+              <td class="num"><strong>0.750</strong></td>
+              <td class="num"><strong>0.618</strong></td>
+              <td class="num good"><strong>0.740</strong></td>
+              <td class="num">0.744</td>
+              <td class="num">0.640</td>
+            </tr>
+            <tr>
+              <td>Baseline Rules</td>
+              <td class="num">0.627</td>
+              <td class="num">0.468</td>
+              <td class="num">0.240</td>
+              <td class="num">—</td>
+              <td class="num">—</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:13.5px;color:#64748b;margin:8px 0 0;">
+          All metrics computed on the same client-holdout split. Precision@50 is the primary ranking metric because the intended use is a limited editorial review queue.
+        </p>
+      </div>
+
+      <p>
+        The model selected 3,605 high-confidence items for the final queue. Reason codes such as “declining_with_demand”, “low_ctr_visible_page”, and “model_decline_risk” accompany each recommendation so editors can understand why a page was surfaced.
+      </p>
+
+      <figure>
+        <object data="charts/top_feature_importance.svg" type="image/svg+xml" aria-label="Top feature importances">
+          <img src="charts/top_feature_importance.svg" alt="Top feature importances">
+        </object>
+        <figcaption>
+          Top features driving the ranking. Days with impressions, log impressions, average position, and content age contribute the most signal.
+        </figcaption>
+      </figure>
+
+      <figure>
+        <object data="charts/action_mix.svg" type="image/svg+xml" aria-label="Recommended action mix">
+          <img src="charts/action_mix.svg" alt="Recommended action mix">
+        </object>
+        <figcaption>
+          Distribution of recommended actions in the ranked queue. Most items fall into refresh or refresh-and-review categories.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ========== LIMITATIONS ========== -->
+    <section>
+      <h2>5. Limitations & Honest Framing</h2>
+      <ul>
+        <li>The model ranks pages that historically showed decline; it does <strong>not</strong> prove that refreshing those pages will recover traffic.</li>
+        <li>Results are based on a 30 k-row anonymized starter slice, not the full multi-million-row warehouse. Absolute numbers may shift with more data.</li>
+        <li>Client-holdout evaluation reduces leakage risk but does not simulate every possible future traffic regime or algorithm update.</li>
+        <li>Reason codes and feature importances are descriptive, not causal explanations of ranking changes.</li>
+        <li>The output is decision support only. Human editorial judgment remains required before any content change is published.</li>
+      </ul>
+      <p>
+        All language in this paper is intentionally limited to observed patterns, measured lift, and directional decision support.
+      </p>
+    </section>
+
+    <!-- ========== RECOMMENDATIONS ========== -->
+    <section>
+      <h2>6. Ranked Recommendations (Action Playbook)</h2>
+      <p>
+        The practical output is a ranked review queue. A content manager can use it tomorrow as follows:
+      </p>
+      <ol>
+        <li><strong>Start with the high-confidence slice</strong> (top ~3,600 items). These carry the strongest combined signal of decline + remaining demand.</li>
+        <li><strong>Read the reason codes</strong> attached to each page (e.g. low CTR on a still-visible page, declining trend with solid impressions). They give an immediate editorial hypothesis.</li>
+        <li><strong>Manually verify</strong> the live page, recent changes, and business context before acting. The model has no access to brand guidelines or upcoming campaigns.</li>
+        <li><strong>Treat medium-confidence items as a secondary queue</strong> once the high-confidence set is cleared.</li>
+        <li><strong>Monitor, do not auto-publish</strong>. The safest production use is to feed the ranked list into an existing editorial workflow, not to trigger automatic rewrites.</li>
+      </ol>
+      <p>
+        This ordering already beats the transparent rule baseline by a clear margin on the holdout set, while remaining fully inspectable.
+      </p>
+    </section>
+
+    <!-- ========== REPRODUCIBILITY ========== -->
+    <section>
+      <h2>7. Reproducibility</h2>
+      <p>
+        Everything needed to re-run the work lives in the public repository:
+      </p>
+      <ul>
+        <li><strong>Repo</strong>: <a href="https://github.com/ishpree1t7/flyrank_work" target="_blank" rel="noopener">github.com/ishpree1t7/flyrank_work</a></li>
+        <li><strong>Data</strong>: <code>data/raw/content_refresh_anonymized.csv</code> (ships with the repo)</li>
+        <li><strong>Pipeline</strong>: <code>python scripts/run_all.py</code> (prepare → baseline → train → evaluate)</li>
+        <li><strong>Notebooks</strong>: <code>work/notebooks/</code> (especially w01, w04, w05 and the capstone skeleton)</li>
+        <li><strong>Metrics receipt</strong>: <code>outputs/model_report.md</code> and the accompanying charts</li>
+      </ul>
+      <p>
+        The client-holdout split and feature exclusions are fixed in the reference scripts, so a fresh clone produces comparable numbers (small variation possible across library versions).
+      </p>
+    </section>
+
+    <!-- ========== ACKNOWLEDGMENTS ========== -->
+    <section>
+      <h2>8. Acknowledgments & Data Credit</h2>
+      <div class="ack">
+        <p>
+          Built on the <a href="https://flyrank.ai" target="_blank" rel="noopener">FlyRank ML Internship dataset</a>.
+          Crediting the data source is standard research practice.
+          All analysis, modeling, and writing were performed as part of the internship track.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    Portfolio research artifact · ishpree1t7/flyrank_work · Public-safe output only
+  </footer>
+
+</body>
+</html>
